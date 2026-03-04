@@ -1,0 +1,33 @@
+    // Extraire le nombre des colonnes texte avec "j", "j?", etc.
+    GetNumber = (txt as any) =>
+        if txt = null then null
+        else
+            let
+                clean = Text.Trim(Text.Replace(Text.Replace(Text.From(txt), "j?", ""), "j", "")),
+                clean2 = Text.Trim(Text.Replace(clean, " ", ""))
+            in
+                try Number.From(Text.Replace(clean2, ",", ".")) otherwise null,
+
+    NettoyerColonnes = Table.TransformColumns(RemoveCols, {
+        {"Travail réel",              each GetNumber(_), type number},
+        {"Durée",                     each GetNumber(_), type number},
+        {"Charge totale",             each GetNumber(_), type number},
+        {"Consommé",                  each GetNumber(_), type number},
+        {"RAF",                       each GetNumber(_), type number},
+        {"Engagé",                    each GetNumber(_), type number},
+        {"Dérive budgétaire (KPI 2.4)", each GetNumber(_), type number}
+    }),
+
+    // Arrondir à 2 décimales les colonnes pourcentage
+    ArrondiPourcentages = Table.TransformColumns(NettoyerColonnes, {
+        {"Avancement (KPI 2.2)",      each if _ = null then null else Number.Round(_, 2), type number},
+        {"dérive / budget (KPI 2.4)", each if _ = null then null else Number.Round(_, 2), type number}
+    })
+
+    RemplaceNullImpacts = Table.TransformColumns(ArrondiPourcentages, {
+        {"Impact_cout",   each if _ = null then 0 else _, type number},
+        {"Impact_delai",  each if _ = null then 0 else _, type number}
+    })
+
+in
+    RemplaceNullImpacts
