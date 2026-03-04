@@ -1,0 +1,36 @@
+    // Nettoyer les valeurs "40j", "33 j?", etc. -> garder uniquement le chiffre
+    NettoyerValeurs = Table.TransformColumns(RemoveCols,
+        List.Transform(
+            List.Select(
+                Table.ColumnNames(RemoveCols),
+                (col) =>
+                    let valeur = try Table.Column(RemoveCols, col){0} otherwise null
+                    in Value.Is(valeur, type text)
+            ),
+            (col) => {col, (txt) =>
+                if txt = null then null
+                else
+                    let
+                        clean = Text.Trim(Text.Replace(Text.Replace(Text.Replace(txt, "j?", ""), " ", ""), "j", "")),
+                        result = try Number.From(Text.Replace(clean, ",", ".")) otherwise txt
+                    in result
+            , type any}
+        )
+    ),
+
+    // Supprimer toutes les colonnes vides (que des null)
+    SupprimerColonnesVides = Table.SelectColumns(
+        NettoyerValeurs,
+        List.Select(
+            Table.ColumnNames(NettoyerValeurs),
+            (col) => List.AnyTrue(
+                List.Transform(
+                    Table.Column(NettoyerValeurs, col),
+                    each _ <> null
+                )
+            )
+        )
+    )
+
+in
+    SupprimerColonnesVides
